@@ -21,7 +21,7 @@ PrintWriter output;
 PrintWriter LoopFileOutput;
 
 //store HTML lines in this array
-String[] HTMLlines;
+byte[] HTMLbytes;
 int LineNumber;
 
 //File names and text status variables
@@ -47,7 +47,8 @@ void setup() {
   
   
   
-  cp5.addTextfield("ArduinoName")
+  cp5.addTextfield("HeaderName")
+    .setValue("webpage")
     .setLabel("Arduino Header File Name")
     .setPosition(43, 269)
     .setSize(300, 30);
@@ -133,23 +134,23 @@ void OutputProcess(File selection) {
 public void Run() {
   
   
-  String ArduinoFileName = cp5.get(Textfield.class,"ArduinoName").getText();
+  String HeaderFileName = cp5.get(Textfield.class,"HeaderName").getText();
   String thePattern = "[^A-Za-z0-9]+";
-  String [] m = match(ArduinoFileName, thePattern);
+  String [] m = match(HeaderFileName, thePattern);
   
   println("Found: " + m);
   println("HTML Path:" + HTMLPath);
-  println(".h Name:" + ArduinoFileName);
+  println(".h Name:" + HeaderFileName);
   
   if (m != null) {
     Status = "NOT A VALID FILE NAME";
   } else {
     try {
       Status = "Running";
-      HTMLlines = loadStrings(HTMLPath);
+      HTMLbytes = loadBytes(HTMLPath);
       try {
         
-        output = createWriter(OutputPath + "/" + ArduinoFileName + ".h");
+        output = createWriter(OutputPath + "/" + HeaderFileName + ".h");
         WriteHeader();
         WriteBody();
         
@@ -187,24 +188,17 @@ void Exit() {
 void WriteHeader() {
   output.println("#include <avr/pgmspace.h>");
   output.println("\n\n");
-  output.println("prog_uchar varName[] PROGMEM ={");
+  output.print("prog_uchar indexHtm[] PROGMEM ={\n\t");
 }
 void WriteBody() {
-  for (int i = 0; i < HTMLlines.length; i++) {
-    //output.print('"');
-    // Replave all the current \" instances with |@ so the " 
-    // does not get messes up.
-    HTMLlines[i] = HTMLlines[i].replace("\\\"","|@"); 
-    // Replace " with \" to create quotes inside the string   
-    HTMLlines[i] = HTMLlines[i].replace("\"","\\\"");
-    // Put the original \" instances back.
-    HTMLlines[i] = HTMLlines[i].replace("|@","\\\"");
-    // Write the lines starting with a tab then " and ending with a NewLins char and a "  
-    output.println("\t\"" + HTMLlines[i] + "\\n\"");
-    //output.println("\\n\"");
+ 
+  for (int i = 0; i < HTMLbytes.length; i++) {
+    output.print(String.format("0x%02x, ", HTMLbytes[i] & 0xff));
+    if (( (i + 1 ) % 16 ) == 0  && i > 6) {
+      output.print("\n\t");
+    }
   }
-  output.print("};\n");
+  output.print("0x00 };\n");
 }
 
-    
 
